@@ -17,7 +17,9 @@ class AlertRule(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String(128), nullable=False)
-    instance_id: Mapped[int] = mapped_column(Integer, ForeignKey("database_instances.id"), nullable=True)
+    instance_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("database_instances.id", ondelete="CASCADE"), nullable=True
+    )
     metric_name: Mapped[str] = mapped_column(String(64), nullable=False)
     operator: Mapped[str] = mapped_column(String(16), default=">")  # >, <, >=, <=, ==
     threshold: Mapped[float] = mapped_column(Float, nullable=False)
@@ -37,9 +39,13 @@ class Alert(Base):
     __tablename__ = "alerts"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    instance_id: Mapped[int] = mapped_column(Integer, ForeignKey("database_instances.id"), nullable=True)
+    instance_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("database_instances.id", ondelete="CASCADE"), nullable=True
+    )
     instance_name: Mapped[str] = mapped_column(String(128), default="")
-    rule_id: Mapped[int] = mapped_column(Integer, ForeignKey("alert_rules.id"), nullable=True)
+    rule_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("alert_rules.id", ondelete="SET NULL"), nullable=True
+    )
     severity: Mapped[str] = mapped_column(String(32), default="warning")
     title: Mapped[str] = mapped_column(String(256), nullable=False)
     message: Mapped[str] = mapped_column(Text, default="")

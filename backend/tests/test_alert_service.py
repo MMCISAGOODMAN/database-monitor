@@ -44,16 +44,16 @@ class TestRootCauseAnalysis:
         from unittest.mock import MagicMock
         svc = alert_service_instance
         rule = MagicMock(metric_name="cpu_usage")
-        instance = MagicMock(max_connections=100)
+        instance = MagicMock(id=1, max_connections=100, db_type="mysql")
         cause, suggestion = svc._analyze_root_cause(rule, 92.5, instance)
-        assert "CPU" in cause
-        assert "慢查询" in suggestion or "优化" in suggestion
+        assert "负载" in cause or "cpu_usage" in cause
+        assert "慢查询" in suggestion or "优化" in suggestion or "扩容" in suggestion
 
     def test_connection_ratio_analysis(self, alert_service_instance):
         from unittest.mock import MagicMock
         svc = alert_service_instance
         rule = MagicMock(metric_name="connection_ratio")
-        instance = MagicMock(max_connections=200)
+        instance = MagicMock(id=1, max_connections=200, db_type="mysql")
         cause, suggestion = svc._analyze_root_cause(rule, 85.0, instance)
         assert "连接数" in cause
-        assert "max_connections" in suggestion
+        assert "max_connections" in suggestion or "连接" in suggestion

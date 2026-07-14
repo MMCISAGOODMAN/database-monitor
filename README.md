@@ -1,5 +1,6 @@
 # 数据库监控大屏系统
 
+[![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)](CHANGELOG.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 企业级数据库监控大屏系统，支持 MySQL、PostgreSQL、Redis、MongoDB 多种数据库的集中监控，以可视化大屏实时展示核心指标、告警与负载分布。
@@ -11,6 +12,7 @@
 ### 监控采集
 - 支持 **MySQL / PostgreSQL / Redis / MongoDB** 四种数据库
 - 定时轮询采集（默认 30 秒，可配置），并发采集，失败自动重试 3 次
+- QPS / 慢查询等采用**计数器差分速率**，避免把累计值当成瞬时指标
 - 连接池复用，密码 **Fernet 加密**存储
 - 首次启动自动注册 Docker 内 PostgreSQL、Redis 演示实例
 
@@ -26,22 +28,23 @@
 - WebSocket 实时推送（5 秒指标 / 3 秒告警）
 
 ### 告警与通知
-- 内置 6 条告警规则 + 自定义规则（增删改、启用/禁用）
-- 智能根因分析与优化建议
+- 内置告警规则 + 自定义规则（增删改、启用/禁用）
+- **分库型结构化优化顾问**（等级 / 指标依据 / 操作建议）
+- 告警根因分析复用顾问引擎
 - 告警聚合（10 分钟内相同告警只发一次）
 - 通知渠道：企业微信、钉钉、飞书 Webhook、邮件
 
 ### 管理功能
-- 数据库实例 CRUD、连接测试、分组管理
+- 数据库实例 CRUD（删除时自动清理关联告警/规则）、连接测试、分组管理
 - 告警规则与通知渠道完整管理界面
 - 采集日志查看（成功/失败/重试记录）
 - 数据导出：CSV / JSON（按时间范围）+ PDF 报告
 - 用户权限：管理员 / 只读用户
 
 ### 详情下钻
-- 指标概览卡片、历史趋势多图
-- 慢查询记录、实例参数、智能优化建议
-- 相关告警列表
+- **按库类型**展示关键指标卡片与趋势图（如 Redis 命中率/内存，PG 缓存命中/死锁）
+- 慢查询记录、实例参数、结构化智能优化建议
+- 相关告警列表；快照约 15 秒自动刷新
 
 ## 系统架构
 
@@ -329,6 +332,10 @@ FRONTEND_PORT=9090 docker compose up -d
 | 前端 | Vue 3、TypeScript、ECharts 5、Element Plus、Pinia |
 | 部署 | Docker Compose、Nginx |
 | 驱动 | aiomysql、asyncpg、redis、motor |
+
+## 版本历史
+
+详见 [CHANGELOG.md](CHANGELOG.md)。当前版本 **2.0.0**。
 
 ## 许可证
 

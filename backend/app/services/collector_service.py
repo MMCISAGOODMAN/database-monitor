@@ -30,6 +30,8 @@ class CollectorService:
         # 缓存最新指标供 WebSocket 推送
         self.latest_metrics: Dict[int, dict] = {}
         self.collection_logs: List[dict] = []
+        # 计数器快照：用于计算 QPS / 慢查询速率等
+        self._counter_snapshots: Dict[int, dict] = {}
 
     async def start(self) -> None:
         """启动定时采集任务。"""
@@ -110,6 +112,10 @@ class CollectorService:
                 self.collection_logs = self.collection_logs[-500:]
 
             if result.success:
+                self._apply_rate_metrics(
+                    instance.id, instance.db_type, result.metrics, result.collected_at
+                )
+
                 # 写入 InfluxDB
                 influxdb_service.write_metrics(
                     instance_id=instance.id,
@@ -170,6 +176,86 @@ class CollectorService:
                 if collected_at:
                     instance.last_collected_at = collected_at
                 await session.commit()
+
+    def _apply_rate_metrics(
+        self,
+        instance_id: int,
+        db_type: str,
+        metrics: dict,
+        collected_at: datetime,
+    ) -> None:
+        """将累计计数器差分转为速率，写入 metrics（原地修改）。"""
+        now_ts = collected_at.timestamp()
+        prev = self._counter_snapshots.get(instance_id)
+        snap: dict = {"t": now_ts, "db_type": db_type}
+
+        def rate(curr: float, prev_val: Optional[float], dt: float) -> Optional[float]:
+            if prev_val is None or dt <= 0:
+                return None
+            delta = curr - prev_val
+            if delta < 0:
+                return None  # 计数器重置
+            return delta / dt
+
+        if db_type == "mysql":
+            questions = float(metrics.get("questions_total", 0))
+            commits = float(metrics.get("com_commit_total", 0))
+            rollbacks = float(metrics.get("com_rollback_total", 0))
+            slow_total = float(metrics.get("slow_queries_total", 0))
+            snap.update({
+                "questions_total": questions,
+                "xact_total": commits + rollbacks,
+                "slow_queries_total": slow_total,
+            })
+            if prev and prev.get("db_type") == "mysql":
+                dt = now_ts - prev["t"]
+                qps = rate(questions, prev.get("questions_total"), dt)
+                tps = rate(commits + rollbacks, prev.get("xact_total"), dt)
+                slow = rate(slow_total, prev.get("slow_queries_total"), dt)
+                if qps is not None:
+                    metrics["qps"] = qps
+                if tps is not None:
+                    metrics["tps"] = tps
+                if slow is not None:
+                    metrics["slow_queries"] = slow
+
+        elif db_type == "postgresql":
+            xact = float(metrics.get("xact_total", 0))
+            stmts = float(metrics.get("statements_total", xact))
+            snap.update({"xact_total": xact, "statements_total": stmts})
+            if prev and prev.get("db_type") == "postgresql":
+                dt = now_ts - prev["t"]
+                tps = rate(xact, prev.get("xact_total"), dt)
+                qps = rate(stmts, prev.get("statements_total"), dt)
+                if tps is not None:
+                    metrics["tps"] = tps
+                if qps is not None:
+                    metrics["qps"] = qps
+
+        elif db_type == "redis":
+            cpu_sec = float(metrics.get("cpu_seconds_total", 0))
+            snap["cpu_seconds_total"] = cpu_sec
+            if prev and prev.get("db_type") == "redis":
+                dt = now_ts - prev["t"]
+                cpu_rate = rate(cpu_sec, prev.get("cpu_seconds_total"), dt)
+                if cpu_rate is not None:
+                    # 约等于单核占用百分比
+                    metrics["cpu_usage"] = min(cpu_rate * 100.0, 100.0)
+
+        elif db_type == "mongodb":
+            ops = float(metrics.get("ops_total", 0))
+            faults = float(metrics.get("page_faults_total", 0))
+            snap.update({"ops_total": ops, "page_faults_total": faults})
+            if prev and prev.get("db_type") == "mongodb":
+                dt = now_ts - prev["t"]
+                qps = rate(ops, prev.get("ops_total"), dt)
+                pf = rate(faults, prev.get("page_faults_total"), dt)
+                if qps is not None:
+                    metrics["qps"] = qps
+                if pf is not None:
+                    metrics["page_faults"] = pf
+
+        self._counter_snapshots[instance_id] = snap
 
 
 collector_service = CollectorService()

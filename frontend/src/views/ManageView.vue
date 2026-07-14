@@ -433,10 +433,16 @@ async function saveInstance() {
 }
 
 async function deleteInstance(id: number) {
-  await ElMessageBox.confirm('确定删除？', '确认')
-  await api.delete(`/instances/${id}`)
-  ElMessage.success('已删除')
-  loadInstances()
+  try {
+    await ElMessageBox.confirm('确定删除该实例？相关告警记录将一并清除。', '确认')
+    await api.delete(`/instances/${id}`)
+    ElMessage.success('已删除')
+    loadInstances()
+  } catch (e) {
+    if (e !== 'cancel' && e !== 'close') {
+      /* 错误由 axios 拦截器提示 */
+    }
+  }
 }
 
 async function testConn(row: any) {

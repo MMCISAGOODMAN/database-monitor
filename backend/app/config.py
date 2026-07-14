@@ -16,7 +16,7 @@ class Settings(BaseSettings):
 
     # 应用基础配置
     app_name: str = "数据库监控大屏系统"
-    app_version: str = "1.0.0"
+    app_version: str = "2.0.0"
     debug: bool = False
 
     # 关系数据库（配置存储）

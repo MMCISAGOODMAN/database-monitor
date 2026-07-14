@@ -75,13 +75,23 @@ class MySQLCollector(BaseCollector):
         """采集 MySQL 全部指标。"""
         metrics: dict[str, float] = {}
 
-        # 基础指标
+        # 基础指标（计数器原始值；速率由 CollectorService 差分计算）
         metrics["connections"] = await self._query_status("Threads_connected")
-        metrics["max_connections"] = await self._query_status("Max_used_connections")
-        metrics["qps"] = await self._query_status("Questions")
-        metrics["tps"] = await self._query_status("Com_commit") + await self._query_status("Com_rollback")
-        metrics["slow_queries"] = await self._query_status("Slow_queries")
+        metrics["max_connections"] = await self._query_value("SELECT @@global.max_connections")
+        metrics["max_used_connections"] = await self._query_status("Max_used_connections")
+        metrics["questions_total"] = await self._query_status("Questions")
+        metrics["com_commit_total"] = await self._query_status("Com_commit")
+        metrics["com_rollback_total"] = await self._query_status("Com_rollback")
+        metrics["slow_queries_total"] = await self._query_status("Slow_queries")
         metrics["uptime"] = await self._query_status("Uptime")
+
+        uptime = max(metrics["uptime"], 1.0)
+        # 首次/无差分时的近似速率（生命周期平均）
+        metrics["qps"] = metrics["questions_total"] / uptime
+        metrics["tps"] = (
+            metrics["com_commit_total"] + metrics["com_rollback_total"]
+        ) / uptime
+        metrics["slow_queries"] = metrics["slow_queries_total"] / uptime
 
         # InnoDB 性能指标
         buffer_reads = await self._query_status("Innodb_buffer_pool_read_requests")
@@ -102,22 +112,26 @@ class MySQLCollector(BaseCollector):
                     await cur.execute("SHOW SLAVE STATUS")
                     row = await cur.fetchone()
                     if row:
-                        # Seconds_Behind_Master 字段索引
                         cols = [d[0] for d in cur.description]
                         if "Seconds_Behind_Master" in cols:
                             idx = cols.index("Seconds_Behind_Master")
                             val = row[idx]
                             metrics["replication_lag"] = float(val) if val is not None else 0.0
-                        metrics["slave_io_running"] = 1.0 if row[cols.index("Slave_IO_Running")] == "Yes" else 0.0
+                        if "Slave_IO_Running" in cols:
+                            metrics["slave_io_running"] = (
+                                1.0 if row[cols.index("Slave_IO_Running")] == "Yes" else 0.0
+                            )
         except Exception:
             metrics["replication_lag"] = 0.0
 
-        # 资源使用率（通过系统变量估算）
-        metrics["cpu_usage"] = min(metrics.get("connections", 0) / max(self.max_connections, 1) * 100, 100)
-        metrics["memory_usage"] = await self._query_status("Innodb_buffer_pool_bytes_data") / (1024 * 1024)
-        metrics["disk_usage"] = 0.0  # 需要 OS 级别采集，此处占位
+        # 负载代理：连接使用率（非宿主机真实 CPU%）
+        max_conn = metrics["max_connections"] or float(self.max_connections) or 1.0
+        metrics["cpu_usage"] = min(metrics.get("connections", 0) / max_conn * 100, 100)
+        metrics["memory_usage"] = await self._query_status("Innodb_buffer_pool_bytes_data") / (
+            1024 * 1024
+        )
+        metrics["disk_usage"] = 0.0
 
-        # 慢查询记录
         slow_queries = []
         try:
             async with self._pool.acquire() as conn:

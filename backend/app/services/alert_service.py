@@ -56,8 +56,24 @@ BUILTIN_RULES = [
         "name": "慢查询过多",
         "metric_name": "slow_queries",
         "operator": ">",
-        "threshold": 100.0,
+        "threshold": 1.0,  # 慢查询速率（次/秒）
         "duration_seconds": 60,
+        "severity": "warning",
+    },
+    {
+        "name": "缓存命中率过低",
+        "metric_name": "hit_rate",
+        "operator": "<",
+        "threshold": 80.0,
+        "duration_seconds": 120,
+        "severity": "warning",
+    },
+    {
+        "name": "内存使用率过高",
+        "metric_name": "memory_usage",
+        "operator": ">",
+        "threshold": 90.0,
+        "duration_seconds": 120,
         "severity": "warning",
     },
 ]
@@ -100,11 +116,12 @@ class AlertService:
 
     async def check_metrics(self, instance: DatabaseInstance, metrics: dict) -> None:
         """检查指标是否触发告警规则。"""
-        # 计算连接数比率
+        # 连接比：优先采集到的 @@max_connections / max_connections，与顾问一致
         connections = metrics.get("connections", 0)
-        max_conn = metrics.get("max_connections", instance.max_connections)
+        max_conn = metrics.get("max_connections") or instance.max_connections or 0
         if max_conn > 0:
             metrics["connection_ratio"] = connections / max_conn * 100
+            metrics["max_connections"] = float(max_conn)
 
         async with AsyncSessionLocal() as session:
             # 获取适用规则（全局 + 实例专属）
@@ -202,26 +219,27 @@ class AlertService:
     def _analyze_root_cause(
         self, rule: AlertRule, value: float, instance: DatabaseInstance
     ) -> Tuple[str, str]:
-        """智能根因分析（加分项）。"""
-        causes = {
-            "cpu_usage": (
-                f"CPU 使用率达到 {value:.1f}%，可能存在大量慢查询或连接数过多",
-                "建议检查慢查询日志，优化 SQL 语句，或考虑扩容",
-            ),
-            "connection_ratio": (
-                f"连接数使用率达到 {value:.1f}%，接近最大连接数限制",
-                f"建议增加 max_connections 配置（当前: {instance.max_connections}），或检查连接泄漏",
-            ),
-            "replication_lag": (
-                f"主从复制延迟 {value:.1f} 秒，从库同步落后",
-                "建议检查从库 IO/SQL 线程状态，检查网络带宽和主库写入压力",
-            ),
-            "slow_queries": (
-                f"慢查询数达到 {value:.0f}，SQL 执行效率低下",
-                "建议分析慢查询日志，添加合适索引，优化查询语句",
-            ),
-        }
-        return causes.get(rule.metric_name, ("指标异常，需进一步排查", "请联系 DBA 团队分析"))
+        """智能根因分析：复用分库型优化顾问。"""
+        from app.services.advisor_service import advisor_service
+        from app.services.collector_service import collector_service
+
+        cached = collector_service.latest_metrics.get(instance.id, {})
+        metrics = dict(cached.get("metrics") or {})
+        metrics[rule.metric_name] = value
+        max_conn = float(metrics.get("max_connections") or instance.max_connections or 100)
+        metrics["max_connections"] = max_conn
+        if rule.metric_name == "connection_ratio":
+            metrics["connections"] = max_conn * value / 100.0
+        elif rule.metric_name == "cpu_usage":
+            metrics["cpu_usage"] = value
+
+        return advisor_service.top_advice(
+            getattr(instance, "db_type", None) or "mysql",
+            metrics,
+            max_connections=int(max_conn),
+            metric_name=rule.metric_name,
+            metric_value=value,
+        )
 
     async def create_connection_failure_alert(self, instance: DatabaseInstance) -> None:
         """创建连接失败紧急告警。"""

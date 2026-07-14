@@ -84,7 +84,14 @@ class RedisCollector(BaseCollector):
             metrics["memory_usage"] = float(info.get("used_memory", 0)) / maxmem * 100
         else:
             metrics["memory_usage"] = 0.0
-        metrics["cpu_usage"] = float(info.get("used_cpu_sys", 0))
+
+        # 累计 CPU 秒，供服务差分估算单核占用百分比
+        metrics["used_cpu_sys"] = float(info.get("used_cpu_sys", 0))
+        metrics["used_cpu_user"] = float(info.get("used_cpu_user", 0))
+        metrics["cpu_seconds_total"] = metrics["used_cpu_sys"] + metrics["used_cpu_user"]
+        # 无差分时用连接占比作为负载代理，避免把累计秒数当百分比
+        max_conn = metrics["max_connections"] or float(self.max_connections) or 1.0
+        metrics["cpu_usage"] = min(metrics["connections"] / max_conn * 100, 100)
         metrics["disk_usage"] = 0.0
 
         return CollectorResult(success=True, metrics=metrics)

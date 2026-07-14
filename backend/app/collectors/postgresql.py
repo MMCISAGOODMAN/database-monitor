@@ -61,14 +61,17 @@ class PostgreSQLCollector(BaseCollector):
                 await conn.fetchval("SHOW max_connections")
             )
 
-            # 事务统计
+            # 事务统计（累计值；速率由 CollectorService 差分）
             row = await conn.fetchrow(
                 "SELECT sum(xact_commit) as commits, sum(xact_rollback) as rollbacks "
                 "FROM pg_stat_database"
             )
             metrics["transactions_commit"] = float(row["commits"] or 0)
             metrics["transactions_rollback"] = float(row["rollbacks"] or 0)
-            metrics["tps"] = metrics["transactions_commit"] + metrics["transactions_rollback"]
+            metrics["xact_total"] = (
+                metrics["transactions_commit"] + metrics["transactions_rollback"]
+            )
+            metrics["tps"] = metrics["xact_total"]  # 首采集先用累计，后续由服务改写为速率
 
             # 死锁
             metrics["deadlocks"] = float(
@@ -109,14 +112,17 @@ class PostgreSQLCollector(BaseCollector):
                 ) or 0
             )
 
-            # QPS 估算（基于语句统计）
-            metrics["qps"] = float(
-                await conn.fetchval(
-                    "SELECT sum(calls) FROM pg_stat_statements"
-                ) or 0
-            ) if await self._table_exists(conn, "pg_stat_statements") else metrics["tps"]
+            # 语句调用累计（pg_stat_statements 存在时）
+            if await self._table_exists(conn, "pg_stat_statements"):
+                metrics["statements_total"] = float(
+                    await conn.fetchval("SELECT sum(calls) FROM pg_stat_statements") or 0
+                )
+                metrics["qps"] = metrics["statements_total"]
+            else:
+                metrics["statements_total"] = metrics["xact_total"]
+                metrics["qps"] = metrics["tps"]
 
-            # 资源使用率估算
+            # 负载代理：连接使用率（非 OS CPU%）
             metrics["cpu_usage"] = min(
                 metrics["connections"] / max(metrics["max_connections"], 1) * 100, 100
             )

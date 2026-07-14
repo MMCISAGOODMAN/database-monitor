@@ -52,16 +52,20 @@ class MongoDBCollector(BaseCollector):
             server_status.get("connections", {}).get("available", 0)
         ) + metrics["connections"]
 
-        # 操作计数
+        # 操作计数（累计；速率由 CollectorService 差分）
         opcounters = server_status.get("opcounters", {})
         metrics["ops_insert"] = float(opcounters.get("insert", 0))
         metrics["ops_query"] = float(opcounters.get("query", 0))
         metrics["ops_update"] = float(opcounters.get("update", 0))
         metrics["ops_delete"] = float(opcounters.get("delete", 0))
-        metrics["qps"] = sum([
+        metrics["ops_total"] = sum([
             metrics["ops_insert"], metrics["ops_query"],
             metrics["ops_update"], metrics["ops_delete"],
         ])
+        metrics["qps"] = metrics["ops_total"]
+        metrics["page_faults_total"] = float(
+            server_status.get("extra_info", {}).get("page_faults", 0)
+        )
 
         # 复制集状态
         repl = server_status.get("repl", {})
@@ -72,8 +76,8 @@ class MongoDBCollector(BaseCollector):
         metrics["active_clients"] = float(global_lock.get("activeClients", {}).get("total", 0))
         metrics["queued_operations"] = float(global_lock.get("currentQueue", {}).get("total", 0))
 
-        # 页面错误
-        metrics["page_faults"] = float(server_status.get("extra_info", {}).get("page_faults", 0))
+        # 页面错误（原始累计，首采集直接展示）
+        metrics["page_faults"] = metrics["page_faults_total"]
 
         # 内存
         mem = server_status.get("mem", {})
@@ -81,8 +85,10 @@ class MongoDBCollector(BaseCollector):
         metrics["memory_virtual"] = float(mem.get("virtual", 0))
         metrics["memory_usage"] = float(mem.get("resident", 0))
 
-        # 资源
-        metrics["cpu_usage"] = min(metrics["connections"] / max(metrics["max_connections"], 1) * 100, 100)
+        # 负载代理：连接使用率
+        metrics["cpu_usage"] = min(
+            metrics["connections"] / max(metrics["max_connections"], 1) * 100, 100
+        )
         metrics["disk_usage"] = 0.0
 
         return CollectorResult(success=True, metrics=metrics)

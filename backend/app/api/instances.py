@@ -3,12 +3,13 @@
 """
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import require_admin, require_auth
 from app.collectors import COLLECTOR_MAP
 from app.database import get_db
+from app.models.alert import Alert, AlertRule
 from app.models.instance import DatabaseInstance, InstanceGroup
 from app.models.user import User
 from app.schemas.common import ResponseModel
@@ -21,6 +22,7 @@ from app.schemas.instance import (
     InstanceGroupCreate,
     InstanceGroupResponse,
 )
+from app.services.advisor_service import advisor_service
 from app.services.collector_service import collector_service
 from app.utils.encryption import decrypt_password, encrypt_password
 
@@ -143,14 +145,30 @@ async def delete_instance(
     db: AsyncSession = Depends(get_db),
     _admin: User = Depends(require_admin),
 ):
-    """删除数据库实例。"""
+    """删除数据库实例（先清理关联告警/规则，避免外键阻塞）。"""
     result = await db.execute(
         select(DatabaseInstance).where(DatabaseInstance.id == instance_id)
     )
     instance = result.scalar_one_or_none()
     if not instance:
         raise HTTPException(status_code=404, detail="实例不存在")
+
+    # alerts.rule_id / alerts.instance_id 均有外键，必须先删告警事件
+    await db.execute(delete(Alert).where(Alert.instance_id == instance_id))
+    await db.execute(delete(AlertRule).where(AlertRule.instance_id == instance_id))
     await db.delete(instance)
+
+    collector_service.latest_metrics.pop(instance_id, None)
+    collector_service._counter_snapshots.pop(instance_id, None)
+    from app.services.alert_service import alert_service
+
+    alert_service._trigger_tracker = {
+        k: v for k, v in alert_service._trigger_tracker.items() if k[0] != instance_id
+    }
+    alert_service._alert_aggregate = {
+        k: v for k, v in alert_service._alert_aggregate.items() if k[0] != instance_id
+    }
+
     return ResponseModel(message="删除成功")
 
 
@@ -180,21 +198,19 @@ async def get_instance_snapshot(
 
     cached = collector_service.latest_metrics.get(instance_id, {})
     metrics = cached.get("metrics", {})
+    slow_queries = cached.get("slow_queries", [])
 
-    suggestions = []
-    if metrics.get("cpu_usage", 0) > 80:
-        suggestions.append("CPU 使用率偏高，建议检查慢查询并优化 SQL")
-    if instance.max_connections and metrics.get("connections", 0) / instance.max_connections > 0.8:
-        suggestions.append(f"连接数接近上限，建议调整 max_connections（当前 {instance.max_connections}）")
-    if metrics.get("slow_queries", 0) > 50:
-        suggestions.append("慢查询较多，建议分析慢查询日志并添加索引")
-    if not suggestions:
-        suggestions.append("当前运行状态良好，暂无优化建议")
+    suggestions = advisor_service.analyze(
+        instance.db_type,
+        metrics,
+        max_connections=instance.max_connections,
+        slow_queries=slow_queries,
+    )
 
     return ResponseModel(data={
         "instance": DatabaseInstanceResponse.model_validate(instance),
         "metrics": metrics,
-        "slow_queries": cached.get("slow_queries", []),
+        "slow_queries": slow_queries,
         "collected_at": cached.get("collected_at"),
         "status": cached.get("status", instance.status),
         "suggestions": suggestions,

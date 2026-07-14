@@ -1,0 +1,20 @@
+{
+  "name": "database-monitor",
+  "version": "2.0.0",
+  "description": "[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MMCISAGOODMAN/database-monitor.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/MMCISAGOODMAN/database-monitor/issues"
+  },
+  "homepage": "https://github.com/MMCISAGOODMAN/database-monitor#readme"
+}
