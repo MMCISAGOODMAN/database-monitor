@@ -26,3 +26,7 @@ Thumbs.db
 
 # Docker
 *.log
+
+# WeChat article drafts (local only, not for GitHub)
+docs/wechat-article-v2/
+docs/wechat-article-v21/
