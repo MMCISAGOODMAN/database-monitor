@@ -27,9 +27,6 @@ Thumbs.db
 # Docker
 *.log
 
-# WeChat article drafts (local only)
-docs/wechat-article-v2/
-docs/wechat-article-v21/
-
-# Local screenshot helper (not for GitHub)
-scripts/capture-v2-article.mjs
+# Local docs and scripts (not for GitHub)
+docs/
+scripts/
