@@ -1,0 +1,46 @@
+公众号文章发布说明（v2.0）
+========================
+
+【标题】
+开源数据库监控大屏 2.0 大更新：顾问会说话了，指标也不再唬人
+
+【副标题】
+Docker 一键部署 · 分库型智能建议 · 删除不再报错
+
+【备用标题】
+1. 别再被假 QPS 骗了：开源数据库监控大屏迎来 2.0
+2. v2.0 上线：一张详情页看懂 MySQL，建议还能说到点上
+
+【文件】
+- article.html        正文（含真实截图相对路径）
+- cover.html          封面画板（浏览器打开可再截）
+- images/cover.png    已导出封面图（可直接作公众号封面）
+- images/*.png        系统实拍图
+
+【135 编辑器步骤】
+1. 打开 135editor.com，新建图文
+2. 复制 article.html 中白色内容区 section 内全部 HTML 粘贴进去
+3. 将 images/ 目录图片上传到 135 素材库
+4. 在编辑器中重新插入/替换图片（相对路径在微信侧通常需换成素材 URL）
+5. 把文末「公众号二维码请替换」换成你的二维码
+6. 封面选用 images/cover.png（约 2.35:1）
+7. 同步到微信公众号后台预览后群发
+
+【截图清单】
+01-login.png                 登录页
+02-dashboard.png             监控大屏
+03-dashboard-fullscreen.png  全屏大屏
+04-instance-detail.png       MySQL 详情（类型化指标）
+05-suggestions.png           智能优化建议模块
+06-manage-instances.png      管理-实例
+07-manage-rules.png          管理-告警规则
+08-redis-detail.png          详情下半屏建议/告警
+cover.png                    封面
+
+【重新截图】
+服务起来后执行（需 Node 20+）：
+  BASE_URL=http://127.0.0.1:8088 node scripts/capture-v2-article.mjs
+
+临时启动后端（使用已有镜像 + 挂载最新代码）：
+  docker compose -f docker-compose.yml -f docker-compose.screenshot.yml up -d
+  # 前端可用：cd frontend && npm run dev -- --port 8088

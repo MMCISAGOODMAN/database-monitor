@@ -16,13 +16,20 @@
       <el-tab-pane label="数据库实例" name="instances">
         <div class="tab-toolbar">
           <el-button type="primary" @click="showInstanceDialog()">添加实例</el-button>
+          <el-button @click="openCompare">对比选中</el-button>
           <el-button @click="loadInstances">刷新</el-button>
         </div>
-        <el-table :data="instances" style="width: 100%">
+        <el-table :data="instances" style="width: 100%" @selection-change="onInstanceSelect">
+          <el-table-column type="selection" width="42" :selectable="() => true" />
           <el-table-column prop="name" label="名称" />
           <el-table-column prop="db_type" label="类型" width="100" />
-          <el-table-column label="地址" width="220">
+          <el-table-column label="地址" width="200">
             <template #default="{ row }">{{ row.host }}:{{ row.port }}</template>
+          </el-table-column>
+          <el-table-column label="采集间隔" width="100">
+            <template #default="{ row }">
+              {{ row.collector_interval_seconds ? row.collector_interval_seconds + 's' : '默认' }}
+            </template>
           </el-table-column>
           <el-table-column label="分组" width="100">
             <template #default="{ row }">{{ groupName(row.group_id) }}</template>
@@ -76,8 +83,16 @@
               <el-switch :model-value="row.is_enabled" @change="toggleRule(row)" />
             </template>
           </el-table-column>
-          <el-table-column label="操作" width="140">
+          <el-table-column label="静默至" width="160">
             <template #default="{ row }">
+              <span v-if="isSilenced(row)" class="silence-tag">{{ formatSilence(row.silenced_until) }}</span>
+              <span v-else class="muted">—</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" width="260">
+            <template #default="{ row }">
+              <el-button size="small" @click="silenceRule(row, 1)">静默1h</el-button>
+              <el-button v-if="isSilenced(row)" size="small" @click="silenceRule(row, 0)">清除</el-button>
               <el-button v-if="!row.is_builtin" size="small" @click="showRuleDialog(row)">编辑</el-button>
               <el-button v-if="!row.is_builtin" size="small" type="danger" @click="deleteRule(row.id)">删除</el-button>
             </template>
@@ -124,6 +139,20 @@
           </el-table-column>
           <el-table-column prop="attempt" label="重试" width="60" />
           <el-table-column prop="error" label="错误信息" show-overflow-tooltip />
+        </el-table>
+      </el-tab-pane>
+
+      <!-- 审计日志 -->
+      <el-tab-pane label="审计日志" name="audit">
+        <div class="tab-toolbar">
+          <el-button @click="loadAuditLogs">刷新</el-button>
+        </div>
+        <el-table :data="auditLogs" style="width: 100%" max-height="500">
+          <el-table-column prop="created_at" label="时间" width="190" />
+          <el-table-column prop="username" label="用户" width="100" />
+          <el-table-column prop="action" label="动作" width="90" />
+          <el-table-column prop="resource" label="资源" width="160" />
+          <el-table-column prop="detail" label="详情" show-overflow-tooltip />
         </el-table>
       </el-tab-pane>
 
@@ -204,11 +233,42 @@
         <el-form-item label="最大连接" prop="max_connections">
           <el-input-number v-model="instanceForm.max_connections" :min="1" style="width: 100%" />
         </el-form-item>
+        <el-form-item label="采集间隔(s)">
+          <el-input-number
+            v-model="instanceForm.collector_interval_seconds"
+            :min="0"
+            :max="3600"
+            style="width: 100%"
+          />
+          <div class="host-hint">0 表示跟随全局默认间隔</div>
+        </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="instanceDialogVisible = false">取消</el-button>
         <el-button type="primary" @click="saveInstance">保存</el-button>
       </template>
+    </el-dialog>
+
+    <!-- 实例对比 -->
+    <el-dialog v-model="compareVisible" title="实例对比" width="720px">
+      <el-table :data="compareRows" style="width: 100%" v-if="compareRows.length">
+        <el-table-column prop="name" label="实例" min-width="120" />
+        <el-table-column prop="db_type" label="类型" width="100" />
+        <el-table-column prop="status" label="状态" width="90" />
+        <el-table-column label="QPS" width="90">
+          <template #default="{ row }">{{ fmtMetric(row.metrics?.qps) }}</template>
+        </el-table-column>
+        <el-table-column label="连接" width="90">
+          <template #default="{ row }">{{ fmtMetric(row.metrics?.connections) }}</template>
+        </el-table-column>
+        <el-table-column label="CPU%" width="90">
+          <template #default="{ row }">{{ fmtMetric(row.metrics?.cpu_usage) }}</template>
+        </el-table-column>
+        <el-table-column label="命中率" width="90">
+          <template #default="{ row }">{{ fmtMetric(row.metrics?.hit_rate) }}</template>
+        </el-table-column>
+      </el-table>
+      <p v-else class="muted">请勾选 2～3 个实例后点击「对比选中」</p>
     </el-dialog>
 
     <!-- 分组对话框 -->
@@ -295,12 +355,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import type { FormInstance, FormRules } from 'element-plus'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import api from '@/api'
 import ThemeToggle from '@/components/ThemeToggle.vue'
 import { downloadWithAuth, postDownloadWithAuth } from '@/utils/download'
+
+const route = useRoute()
 
 const formRef = ref<FormInstance>()
 const activeTab = ref('instances')
@@ -309,7 +372,11 @@ const groups = ref<any[]>([])
 const rules = ref<any[]>([])
 const channels = ref<any[]>([])
 const collectionLogs = ref<any[]>([])
+const auditLogs = ref<any[]>([])
 const sysStatus = ref<any>(null)
+const selectedInstances = ref<any[]>([])
+const compareVisible = ref(false)
+const compareRows = ref<any[]>([])
 
 const instanceDialogVisible = ref(false)
 const groupDialogVisible = ref(false)
@@ -320,7 +387,8 @@ const editingRule = ref<any>(null)
 
 const instanceForm = reactive({
   name: '', db_type: 'mysql', host: '', port: 3306,
-  username: '', password: '', database_name: '', max_connections: 100, group_id: null as number | null,
+  username: '', password: '', database_name: '', max_connections: 100,
+  collector_interval_seconds: 0, group_id: null as number | null,
 })
 const groupForm = reactive({ name: '', group_type: 'environment', description: '' })
 const ruleForm = reactive({
@@ -349,13 +417,62 @@ function groupName(id: number | null) {
 }
 
 onMounted(() => {
+  if (typeof route.query.tab === 'string' && route.query.tab) {
+    activeTab.value = route.query.tab
+  }
   loadAll()
+})
+
+watch(() => route.query.tab, (tab) => {
+  if (typeof tab === 'string' && tab) activeTab.value = tab
 })
 
 async function loadAll() {
   await Promise.all([
-    loadInstances(), loadGroups(), loadRules(), loadChannels(), loadSysStatus(),
+    loadInstances(), loadGroups(), loadRules(), loadChannels(), loadSysStatus(), loadAuditLogs(),
   ])
+}
+
+function onInstanceSelect(rows: any[]) {
+  selectedInstances.value = rows
+}
+
+function fmtMetric(v: any) {
+  if (v === undefined || v === null) return '-'
+  return typeof v === 'number' ? (Number.isInteger(v) ? v : v.toFixed(1)) : v
+}
+
+function isSilenced(row: any) {
+  if (!row.silenced_until) return false
+  return new Date(row.silenced_until).getTime() > Date.now()
+}
+
+function formatSilence(t: string) {
+  return new Date(t).toLocaleString()
+}
+
+async function openCompare() {
+  const ids = selectedInstances.value.map((r) => r.id)
+  if (ids.length < 2 || ids.length > 3) {
+    ElMessage.warning('请勾选 2～3 个实例进行对比')
+    return
+  }
+  const res = await api.get('/dashboard/compare', { params: { ids: ids.join(',') } })
+  compareRows.value = res.data.data || []
+  compareVisible.value = true
+}
+
+async function silenceRule(row: any, hours: number) {
+  await api.post(`/alerts/rules/${row.id}/silence`, { hours })
+  ElMessage.success(hours > 0 ? `已静默 ${hours} 小时` : '已清除静默')
+  loadRules()
+}
+
+async function loadAuditLogs() {
+  try {
+    const res = await api.get('/system/audit-logs', { params: { limit: 100 } })
+    auditLogs.value = res.data.data || []
+  } catch { /* */ }
 }
 
 async function loadInstances() {
@@ -393,6 +510,7 @@ function buildPayload() {
     password: instanceForm.password || '',
     database_name: instanceForm.database_name?.trim() || '',
     max_connections: instanceForm.max_connections ?? 100,
+    collector_interval_seconds: instanceForm.collector_interval_seconds ?? 0,
     group_id: instanceForm.group_id,
   }
 }
@@ -403,12 +521,15 @@ function showInstanceDialog(row?: any) {
     Object.assign(instanceForm, {
       name: row.name, db_type: row.db_type, host: row.host, port: row.port,
       username: row.username || '', password: '', database_name: row.database_name || '',
-      max_connections: row.max_connections || 100, group_id: row.group_id,
+      max_connections: row.max_connections || 100,
+      collector_interval_seconds: row.collector_interval_seconds || 0,
+      group_id: row.group_id,
     })
   } else {
     Object.assign(instanceForm, {
       name: '', db_type: 'mysql', host: '', port: 3306,
-      username: '', password: '', database_name: '', max_connections: 100, group_id: null,
+      username: '', password: '', database_name: '', max_connections: 100,
+      collector_interval_seconds: 0, group_id: null,
     })
   }
   instanceDialogVisible.value = true
@@ -575,5 +696,11 @@ async function exportPDF() {
   font-size: 12px;
   color: var(--text-secondary);
   code { color: var(--accent-cyan); background: var(--btn-bg-hover); padding: 1px 6px; border-radius: 4px; }
+}
+
+.muted { color: var(--text-secondary); font-size: 13px; }
+.silence-tag {
+  font-size: 12px;
+  color: var(--accent-orange);
 }
 </style>

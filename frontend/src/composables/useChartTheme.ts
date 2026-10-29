@@ -12,14 +12,14 @@ export function useChartTheme() {
   const themeStore = useThemeStore()
 
   const colors = computed(() => ({
-    cyan: getCssVar('--accent-cyan', '#00d4ff'),
-    blue: getCssVar('--accent-blue', '#4da6ff'),
-    purple: getCssVar('--accent-purple', '#7b8cff'),
-    orange: getCssVar('--accent-orange', '#ff9f43'),
-    red: getCssVar('--accent-red', '#ff4757'),
-    label: getCssVar('--chart-label', '#8e9aaf'),
-    bg: getCssVar('--bg-primary', '#0a0f1a'),
-    border: getCssVar('--border-color', 'rgba(0,180,255,0.25)'),
+    cyan: getCssVar('--accent-cyan', '#3d5a80'),
+    blue: getCssVar('--accent-blue', '#4a6fa5'),
+    purple: getCssVar('--accent-purple', '#5c6b7a'),
+    orange: getCssVar('--accent-orange', '#b45309'),
+    red: getCssVar('--accent-red', '#b91c1c'),
+    label: getCssVar('--chart-label', '#6b7280'),
+    bg: getCssVar('--bg-primary', '#f5f6f8'),
+    border: getCssVar('--border-color', 'rgba(31,41,55,0.1)'),
     isDark: themeStore.mode === 'dark',
   }))
 

@@ -16,11 +16,13 @@ from app.schemas.alert import (
     AlertResponse,
     AlertRuleCreate,
     AlertRuleResponse,
+    AlertSilenceRequest,
     NotificationChannelCreate,
     NotificationChannelResponse,
 )
 from app.schemas.common import ResponseModel
 from app.services.alert_service import alert_service
+from app.services.audit_service import audit_service
 
 router = APIRouter(prefix="/alerts", tags=["告警管理"])
 
@@ -75,6 +77,10 @@ async def create_rule(
     rule = AlertRule(**data.model_dump())
     db.add(rule)
     await db.flush()
+    await audit_service.log(
+        db, user=_admin, action="create", resource=f"rule:{rule.id}",
+        detail=f"创建告警规则 {rule.name}",
+    )
     return ResponseModel(data=AlertRuleResponse.model_validate(rule))
 
 
@@ -96,6 +102,10 @@ async def create_channel(
     channel = NotificationChannel(**data.model_dump())
     db.add(channel)
     await db.flush()
+    await audit_service.log(
+        db, user=_admin, action="create", resource=f"channel:{channel.id}",
+        detail=f"创建通知渠道 {channel.name}",
+    )
     return ResponseModel(data=NotificationChannelResponse.model_validate(channel))
 
 
@@ -116,7 +126,40 @@ async def update_rule(
     for k, v in data.model_dump().items():
         setattr(rule, k, v)
     await db.flush()
+    await audit_service.log(
+        db, user=_admin, action="update", resource=f"rule:{rule.id}",
+        detail=f"更新告警规则 {rule.name}",
+    )
     return ResponseModel(data=AlertRuleResponse.model_validate(rule))
+
+
+@router.post("/rules/{rule_id}/silence", response_model=ResponseModel[AlertRuleResponse])
+async def silence_rule(
+    rule_id: int,
+    data: AlertSilenceRequest,
+    db: AsyncSession = Depends(get_db),
+    _admin: User = Depends(require_admin),
+):
+    """静默告警规则（hours=0 清除静默）。"""
+    from datetime import datetime, timedelta, timezone
+
+    result = await db.execute(select(AlertRule).where(AlertRule.id == rule_id))
+    rule = result.scalar_one_or_none()
+    if not rule:
+        raise HTTPException(status_code=404, detail="规则不存在")
+
+    if data.hours <= 0:
+        rule.silenced_until = None
+        detail = f"清除规则静默 {rule.name}"
+    else:
+        rule.silenced_until = datetime.now(timezone.utc) + timedelta(hours=data.hours)
+        detail = f"静默规则 {rule.name} {data.hours}h"
+
+    await db.flush()
+    await audit_service.log(
+        db, user=_admin, action="silence", resource=f"rule:{rule.id}", detail=detail,
+    )
+    return ResponseModel(data=AlertRuleResponse.model_validate(rule), message=detail)
 
 
 @router.delete("/rules/{rule_id}", response_model=ResponseModel)
@@ -132,7 +175,12 @@ async def delete_rule(
         raise HTTPException(status_code=404, detail="规则不存在")
     if rule.is_builtin:
         raise HTTPException(status_code=400, detail="内置规则不可删除")
+    name = rule.name
     await db.delete(rule)
+    await audit_service.log(
+        db, user=_admin, action="delete", resource=f"rule:{rule_id}",
+        detail=f"删除告警规则 {name}",
+    )
     return ResponseModel(message="删除成功")
 
 
@@ -165,7 +213,12 @@ async def delete_channel(
     channel = result.scalar_one_or_none()
     if not channel:
         raise HTTPException(status_code=404, detail="渠道不存在")
+    name = channel.name
     await db.delete(channel)
+    await audit_service.log(
+        db, user=_admin, action="delete", resource=f"channel:{channel_id}",
+        detail=f"删除通知渠道 {name}",
+    )
     return ResponseModel(message="删除成功")
 
 

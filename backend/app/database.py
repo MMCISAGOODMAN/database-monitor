@@ -50,6 +50,29 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
 
 
 async def init_db() -> None:
-    """初始化数据库表结构。"""
+    """初始化数据库表结构，并补齐增量列。"""
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        await conn.run_sync(_ensure_v21_columns)
+
+
+def _ensure_v21_columns(sync_conn) -> None:
+    """为已有库补齐 v2.1 新增列（幂等）。"""
+    dialect = sync_conn.dialect.name
+    statements = []
+    if dialect == "sqlite":
+        statements = [
+            "ALTER TABLE database_instances ADD COLUMN collector_interval_seconds INTEGER DEFAULT 0",
+            "ALTER TABLE alert_rules ADD COLUMN silenced_until DATETIME",
+        ]
+    else:
+        statements = [
+            "ALTER TABLE database_instances ADD COLUMN IF NOT EXISTS collector_interval_seconds INTEGER DEFAULT 0",
+            "ALTER TABLE alert_rules ADD COLUMN IF NOT EXISTS silenced_until TIMESTAMPTZ",
+        ]
+    for sql in statements:
+        try:
+            sync_conn.exec_driver_sql(sql)
+        except Exception:
+            # 列已存在或其他可忽略错误
+            pass

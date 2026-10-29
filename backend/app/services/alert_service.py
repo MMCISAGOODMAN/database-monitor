@@ -179,6 +179,15 @@ class AlertService:
         aggregate_key = (instance.id, rule.name)
         now = datetime.now(timezone.utc)
 
+        # 规则静默期内不落库、不通知，避免刷屏
+        silenced = getattr(rule, "silenced_until", None)
+        if silenced is not None:
+            if silenced.tzinfo is None:
+                silenced = silenced.replace(tzinfo=timezone.utc)
+            if silenced > now:
+                logger.info("规则静默中，跳过告警: %s until %s", rule.name, silenced.isoformat())
+                return
+
         # 告警聚合：10分钟内相同告警只发一次
         last_sent = self._alert_aggregate.get(aggregate_key)
         if last_sent and (now - last_sent).total_seconds() < settings.alert_aggregate_window_seconds:

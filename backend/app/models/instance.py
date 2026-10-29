@@ -41,6 +41,8 @@ class DatabaseInstance(Base):
     encrypted_password: Mapped[str] = mapped_column(Text, default="")
     database_name: Mapped[str] = mapped_column(String(128), default="")
     max_connections: Mapped[int] = mapped_column(Integer, default=100)
+    # 0 = 跟随全局 COLLECTOR_INTERVAL_SECONDS
+    collector_interval_seconds: Mapped[int] = mapped_column(Integer, default=0)
     group_id: Mapped[int] = mapped_column(Integer, ForeignKey("instance_groups.id"), nullable=True)
     is_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
     description: Mapped[str] = mapped_column(Text, default="")

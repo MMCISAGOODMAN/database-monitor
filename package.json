@@ -1,6 +1,6 @@
 {
   "name": "database-monitor",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)",
   "main": "index.js",
   "scripts": {

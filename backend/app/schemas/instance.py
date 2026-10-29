@@ -41,6 +41,7 @@ class DatabaseInstanceCreate(BaseModel):
     password: str = ""
     database_name: str = ""
     max_connections: int = 100
+    collector_interval_seconds: int = Field(0, ge=0, le=3600)
     group_id: Optional[int] = None
     description: str = ""
 
@@ -57,6 +58,7 @@ class DatabaseInstanceUpdate(BaseModel):
     password: Optional[str] = None
     database_name: Optional[str] = None
     max_connections: Optional[int] = None
+    collector_interval_seconds: Optional[int] = Field(None, ge=0, le=3600)
     group_id: Optional[int] = None
     is_enabled: Optional[bool] = None
     description: Optional[str] = None
@@ -73,6 +75,7 @@ class DatabaseInstanceResponse(BaseModel):
     username: str
     database_name: str
     max_connections: int
+    collector_interval_seconds: int = 0
     group_id: Optional[int]
     is_enabled: bool
     status: str

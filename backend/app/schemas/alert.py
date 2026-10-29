@@ -36,9 +36,16 @@ class AlertRuleResponse(BaseModel):
     is_builtin: bool
     is_enabled: bool
     expression: str
+    silenced_until: Optional[datetime] = None
     created_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+class AlertSilenceRequest(BaseModel):
+    """告警规则静默请求。"""
+
+    hours: float = Field(1.0, ge=0, le=168, description="静默小时数，0 表示清除静默")
 
 
 class AlertResponse(BaseModel):

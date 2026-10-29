@@ -1,0 +1,15 @@
+# 临时：用已有镜像 + 挂载最新代码跑截图环境（无需重新 build 基础镜像）
+services:
+  db-monitor-backend:
+    image: database-monitor-db-monitor-backend:latest
+    build: !reset null
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend/app:/app/app
+
+  db-monitor-frontend:
+    image: database-monitor-db-monitor-frontend:latest
+    build: !reset null
+    profiles:
+      - legacy-frontend

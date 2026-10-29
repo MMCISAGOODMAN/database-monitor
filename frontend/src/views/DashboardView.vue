@@ -21,6 +21,9 @@
           <button v-if="isAdmin" class="toolbar-btn" @click="$router.push('/manage')">
             <el-icon><Setting /></el-icon>管理
           </button>
+          <button v-if="isAdmin" class="toolbar-btn" @click="$router.push('/manage?tab=instances')">
+            对比
+          </button>
           <button class="toolbar-btn" @click="handleLogout">
             <el-icon><SwitchButton /></el-icon>退出
           </button>
@@ -34,20 +37,20 @@
     <!-- KPI 卡片区 -->
     <section class="kpi-section">
       <KPICard label="监控总数 / 异常" :value="kpi.total_instances" :trend="kpi.total_instances_trend"
-        icon="Monitor" icon-color="#00d4ff" />
+        icon="Monitor" icon-color="#3d5a80" />
       <KPICard label="平均 QPS" :value="kpi.avg_qps" :trend="kpi.avg_qps_trend"
-        icon="TrendCharts" icon-color="#7b8cff" />
+        icon="TrendCharts" icon-color="#4a6fa5" />
       <KPICard label="总连接数" :value="kpi.total_connections" :trend="kpi.total_connections_trend"
-        icon="Connection" icon-color="#00d4ff" />
+        icon="Connection" icon-color="#5c6b7a" />
       <KPICard label="今日告警" :value="kpi.today_alerts" :trend="kpi.today_alerts_trend"
-        icon="Bell" icon-color="#ff9f43" />
+        icon="Bell" icon-color="#b45309" />
       <KPICard label="系统健康度" :value="kpi.health_score" unit="%" :trend="kpi.health_score_trend"
-        icon="CircleCheck" icon-color="#4da6ff" />
+        icon="CircleCheck" icon-color="#3d5a80" />
     </section>
 
     <!-- 无数据引导 -->
     <div v-if="isEmpty" class="empty-guide glass-card">
-      <el-icon :size="48" color="#00d4ff"><Monitor /></el-icon>
+      <el-icon :size="48" color="#3d5a80"><Monitor /></el-icon>
       <h3>暂无监控数据</h3>
       <p>系统尚未配置数据库实例，或采集器还未完成首次采集。</p>
       <el-button v-if="isAdmin" type="primary" @click="$router.push('/manage')">前往添加实例</el-button>
@@ -172,7 +175,8 @@ function handleLogout() {
   grid-template-rows: 60px 110px 1fr 220px;
   gap: 12px;
   padding: 12px 16px;
-  background: var(--bg-primary);
+  background:
+    linear-gradient(180deg, var(--bg-primary) 0%, var(--bg-elevated) 100%);
 
   &.fullscreen {
     padding: 8px;
@@ -188,7 +192,7 @@ function handleLogout() {
 .dashboard-title {
   font-size: 22px;
   font-weight: 700;
-  background: linear-gradient(90deg, var(--accent-cyan), var(--accent-purple));
+  background: linear-gradient(90deg, var(--title-gradient-from), var(--title-gradient-to));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }

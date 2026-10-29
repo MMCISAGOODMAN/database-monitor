@@ -4,13 +4,18 @@
 
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import require_auth
+from app.database import get_db
+from app.models.instance import DatabaseInstance
 from app.models.user import User
 from app.schemas.common import ResponseModel
 from app.schemas.metrics import DashboardKPI, MetricSeries, TreemapItem
 from app.services.analytics_service import analytics_service
+from app.services.collector_service import collector_service
 from app.services.dashboard_service import dashboard_service
 from app.services.influxdb_service import influxdb_service
 
@@ -63,6 +68,51 @@ async def get_alert_stats(
     """获取告警统计数据（按天/级别）。"""
     stats = await analytics_service.get_alert_stats(days)
     return ResponseModel(data=stats)
+
+
+@router.get("/compare", response_model=ResponseModel[list])
+async def compare_instances(
+    ids: str = Query(..., description="逗号分隔的实例 ID，2～3 个"),
+    db: AsyncSession = Depends(get_db),
+    _user: User = Depends(require_auth),
+):
+    """实例对比：返回各实例最新 KPI 快照。"""
+    try:
+        id_list = [int(x.strip()) for x in ids.split(",") if x.strip()]
+    except ValueError:
+        raise HTTPException(status_code=400, detail="ids 格式无效")
+    if len(id_list) < 2 or len(id_list) > 3:
+        raise HTTPException(status_code=400, detail="请选择 2～3 个实例进行对比")
+
+    result = await db.execute(
+        select(DatabaseInstance).where(DatabaseInstance.id.in_(id_list))
+    )
+    instances = {i.id: i for i in result.scalars().all()}
+
+    items = []
+    for iid in id_list:
+        inst = instances.get(iid)
+        if not inst:
+            continue
+        cached = collector_service.latest_metrics.get(iid, {})
+        metrics = cached.get("metrics", {})
+        items.append({
+            "id": inst.id,
+            "name": inst.name,
+            "db_type": inst.db_type,
+            "status": cached.get("status", inst.status),
+            "collected_at": cached.get("collected_at"),
+            "metrics": {
+                "qps": metrics.get("qps"),
+                "connections": metrics.get("connections"),
+                "cpu_usage": metrics.get("cpu_usage"),
+                "slow_queries": metrics.get("slow_queries"),
+                "hit_rate": metrics.get("hit_rate") or metrics.get("cache_hit_rate")
+                    or metrics.get("innodb_buffer_hit_rate"),
+                "memory_usage": metrics.get("memory_usage"),
+            },
+        })
+    return ResponseModel(data=items)
 
 
 @router.get("/history/{instance_id}", response_model=ResponseModel[dict])

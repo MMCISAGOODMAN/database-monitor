@@ -28,6 +28,7 @@ class AlertRule(Base):
     is_builtin: Mapped[bool] = mapped_column(Boolean, default=False)
     is_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
     expression: Mapped[str] = mapped_column(Text, default="")
+    silenced_until: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )

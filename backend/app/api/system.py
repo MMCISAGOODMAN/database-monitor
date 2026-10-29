@@ -5,11 +5,14 @@
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, Query
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import require_admin, require_auth
 from app.config import get_settings
+from app.database import get_db
 from app.models.user import User
 from app.schemas.common import ResponseModel
+from app.services.audit_service import audit_service
 from app.services.collector_service import collector_service
 from app.services.influxdb_service import influxdb_service
 
@@ -43,3 +46,14 @@ async def get_system_status(_user: User = Depends(require_auth)):
         "recent_success_rate": round(success_count / max(total_recent, 1) * 100, 1),
         "collection_log_count": len(collector_service.collection_logs),
     })
+
+
+@router.get("/audit-logs", response_model=ResponseModel[List[dict]])
+async def get_audit_logs(
+    limit: int = Query(100, le=500),
+    db: AsyncSession = Depends(get_db),
+    _admin: User = Depends(require_admin),
+):
+    """获取操作审计日志。"""
+    logs = await audit_service.list_logs(db, limit=limit)
+    return ResponseModel(data=logs)

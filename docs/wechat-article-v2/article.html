@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>开源数据库监控大屏 2.0 大更新：顾问会说话了，指标也不再唬人</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f5f5f5;">
+
+<!--
+  135编辑器 / 微信公众号同步专用
+  建议：复制下方 section 内容到 135；images/ 内为真实系统截图，需上传后路径保持一致或重新插入
+-->
+
+<section style="max-width:677px;margin:0 auto;padding:20px 16px;background-color:#ffffff;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;color:#3f3f3f;">
+
+  <!-- 标题 -->
+  <section style="margin-bottom:28px;">
+    <p style="font-size:13px;color:#888888;line-height:1.6;margin:0 0 10px 0;text-align:center;">开源推荐 · v2.0 大更新 · 运维干货</p>
+    <h1 style="font-size:22px;font-weight:bold;color:#1a1a1a;line-height:1.45;margin:0 0 14px 0;text-align:center;">开源数据库监控大屏 2.0 大更新<br/>顾问会说话了，指标也不再唬人</h1>
+    <p style="font-size:15px;color:#576b95;line-height:1.8;margin:0;text-align:center;">Docker 一键部署 · 分库型智能建议 · 删除不再报错</p>
+  </section>
+
+  <!-- 封面 -->
+  <section style="margin-bottom:28px;">
+    <img src="images/cover.png" alt="database-monitor v2.0 封面" style="width:100%;height:auto;display:block;border-radius:8px;" />
+  </section>
+
+  <!-- 开头 -->
+  <section style="margin-bottom:28px;">
+    <p style="font-size:16px;color:#3f3f3f;line-height:2;margin:0 0 14px 0;text-align:justify;">
+      如果你管过几套数据库，大概都经历过这种场面：大屏数字看着热闹，真正出事时却说不清「该先改什么」。v1 能「看见」MySQL / PostgreSQL / Redis / MongoDB；到了 <strong style="color:#007a99;">v2.0</strong>，我们想把它升级成「看得懂、说得准、用得稳」。
+    </p>
+    <p style="font-size:16px;color:#3f3f3f;line-height:2;margin:0 0 14px 0;text-align:justify;">
+      这次更新不是换皮：优化建议从空话变成<strong>结构化、分库型顾问</strong>；QPS / 慢查询不再拿累计值装瞬间速率；实例删不掉的外键坑也修了。适合扔办公室大屏，也适合开发本机盯库。
+    </p>
+  </section>
+
+  <section style="margin-bottom:32px;padding:16px 18px;background-color:#f7f8fa;border-radius:8px;border-left:4px solid #007a99;">
+    <p style="font-size:15px;color:#3f3f3f;line-height:2;margin:0;">
+      <strong>项目：</strong>database-monitor<br/>
+      <strong>版本：</strong>2.0.0（MIT 可商用）<br/>
+      <strong>GitHub：</strong>github.com/MMCISAGOODMAN/database-monitor<br/>
+      <strong>一键部署：</strong>docker compose up -d<br/>
+      <strong>默认访问：</strong>http://localhost:8088（admin / admin123）
+    </p>
+  </section>
+
+  <!-- 板块一 -->
+  <section style="margin-bottom:28px;">
+    <p style="font-size:18px;font-weight:bold;color:#007a99;line-height:1.6;margin:0;padding:14px 0;border-top:1px solid #e7e7e7;border-bottom:1px solid #e7e7e7;text-align:center;">一、还是那块大屏，先把「一眼看见」做到位</p>
+  </section>
+
+  <section style="margin-bottom:28px;">
+    <p style="font-size:16px;color:#3f3f3f;line-height:2;margin:0 0 16px 0;text-align:justify;">
+      v2 没有扔掉大屏这张王牌：KPI、实例列表、实时趋势、告警滚动、负载分布、近 7 日告警统计，仍然是一屏可读。右上角版本号已经亮到 <strong>v2.0.0</strong>，WebSocket 实时连接状态也看得见。
+    </p>
+    <img src="images/02-dashboard.png" alt="监控大屏 v2.0" style="width:100%;height:auto;display:block;border-radius:6px;border:1px solid #e7e7e7;" />
+    <p style="font-size:13px;color:#888888;line-height:1.6;margin:8px 0 16px 0;text-align:center;">▲ 实拍：数据库监控大屏（v2.0.0）</p>
+    <p style="font-size:16px;color:#3f3f3f;line-height:2;margin:0 0 16px 0;text-align:justify;">
+      需要投屏汇报时，全屏模式更干净——老板路过会多看两眼那种。
+    </p>
+    <img src="images/03-dashboard-fullscreen.png" alt="全屏监控大屏" style="width:100%;height:auto;display:block;border-radius:6px;border:1px solid #e7e7e7;" />
+    <p style="font-size:13px;color:#888888;line-height:1.6;margin:8px 0 0 0;text-align:center;">▲ 实拍：全屏模式</p>
+  </section>
+
+  <!-- 板块二 -->
+  <section style="margin-bottom:28px;">
+    <p style="font-size:18px;font-weight:bold;color:#007a99;line-height:1.6;margin:0;padding:14px 0;border-top:1px solid #e7e7e7;border-bottom:1px solid #e7e7e7;text-align:center;">二、核心升级：分库型「智能优化建议」</p>
+  </section>
+
+  <section style="margin-bottom:28px;">
+    <p style="font-size:16px;color:#3f3f3f;line-height:2;margin:0 0 14px 0;text-align:justify;">
+      v1 的建议只有三句万能句；v2 换成了顾问引擎：输出带 <strong>severity / title / metric / advice</strong> 的结构化条目，并按库类型给不同规则——
+    </p>
+    <section style="margin:0 0 16px 0;padding:14px 16px;background-color:#f0fafc;border-radius:8px;">
+      <p style="font-size:15px;color:#3f3f3f;line-height:2;margin:0;">
+        MySQL：连接比、慢查询速率、InnoDB Buffer 命中、复制延迟<br/>
+        PostgreSQL：缓存命中、死锁、锁等待、临时文件<br/>
+        Redis：命中率、内存占用、阻塞客户端、bgsave 失败<br/>
+        MongoDB：队列积压、缺页、副本状态
+      </p>
+    </section>
+    <p style="font-size:16px;color:#3f3f3f;line-height:2;margin:0 0 16px 0;text-align:justify;">
+      健康时坦然告诉你「暂无优化建议」；异常时则给出等级和可执行动作。告警里的根因分析，也复用同一套顾问逻辑，避免「大屏一套话、告警另一套话」。
+    </p>
+    <img src="images/05-suggestions.png" alt="智能优化建议" style="width:100%;height:auto;display:block;border-radius:6px;border:1px solid #e7e7e7;" />
+    <p style="font-size:13px;color:#888888;line-height:1.6;margin:8px 0 0 0;text-align:center;">▲ 实拍：详情页「智能优化建议」模块</p>
+  </section>
+
+  <!-- 板块三 -->
+  <section style="margin-bottom:28px;">
+    <p style="font-size:18px;font-weight:bold;color:#007a99;line-height:1.6;margin:0;padding:14px 0;border-top:1px solid #e7e7e7;border-bottom:1px solid #e7e7e7;text-align:center;">三、指标说人话：差分速率 + 按库型看数</p>
+  </section>
+
+  <section style="margin-bottom:28px;">
+    <p style="font-size:16px;color:#3f3f3f;line-height:2;margin:0 0 14px 0;text-align:justify;">
+      以前有人会被「假 QPS」骗到：MySQL 的 Questions、慢查询计数是<strong>累计值</strong>，直接当速率看只会越看越大。v2 用两次采集差分（首采用 uptime 近似）产出真实速率；<code style="background:#f0f0f0;padding:2px 6px;border-radius:3px;color:#007a99;">max_connections</code> 也改成读 <code style="background:#f0f0f0;padding:2px 6px;border-radius:3px;color:#007a99;">@@global.max_connections</code>，连接比告警终于和配置对得上。
+    </p>
+    <p style="font-size:16px;color:#3f3f3f;line-height:2;margin:0 0 16px 0;text-align:justify;">
+      详情页也按 <strong>db_type</strong> 换卡片：MySQL 强调 Buffer 命中与慢查询/s；Redis 会切到命中率、内存；PostgreSQL 会突出缓存命中与死锁。页面约 15 秒自动刷新，不用一直手搓 F5。
+    </p>
+    <img src="images/04-instance-detail.png" alt="MySQL 实例详情" style="width:100%;height:auto;display:block;border-radius:6px;border:1px solid #e7e7e7;" />
+    <p style="font-size:13px;color:#888888;line-height:1.6;margin:8px 0 16px 0;text-align:center;">▲ 实拍：MySQL 详情（类型化 KPI + 趋势）</p>
+    <img src="images/08-redis-detail.png" alt="实例详情建议与告警" style="width:100%;height:auto;display:block;border-radius:6px;border:1px solid #e7e7e7;" />
+    <p style="font-size:13px;color:#888888;line-height:1.6;margin:8px 0 0 0;text-align:center;">▲ 实拍：详情下半屏——慢查询 / 参数 / 建议 / 相关告警</p>
+  </section>
+
+  <!-- 板块四 -->
+  <section style="margin-bottom:28px;">
+    <p style="font-size:18px;font-weight:bold;color:#007a99;line-height:1.6;margin:0;padding:14px 0;border-top:1px solid #e7e7e7;border-bottom:1px solid #e7e7e7;text-align:center;">四、用得更稳：管理、告警规则、删除终于顺手了</p>
+  </section>
+
+  <section style="margin-bottom:28px;">
+    <p style="font-size:16px;color:#3f3f3f;line-height:2;margin:0 0 16px 0;text-align:justify;">
+      管理页依然是实例、分组、规则、渠道、采集日志、导出一站搞定。v2 里大家吐槽最多的一个坑——<strong>自己加的实例删不掉</strong>（被告警外键卡住）——已修：删除前先清理关联告警与实例级规则。
+    </p>
+    <img src="images/06-manage-instances.png" alt="管理页实例列表" style="width:100%;height:auto;display:block;border-radius:6px;border:1px solid #e7e7e7;" />
+    <p style="font-size:13px;color:#888888;line-height:1.6;margin:8px 0 16px 0;text-align:center;">▲ 实拍：系统管理 · 数据库实例</p>
+    <img src="images/07-manage-rules.png" alt="告警规则" style="width:100%;height:auto;display:block;border-radius:6px;border:1px solid #e7e7e7;" />
+    <p style="font-size:13px;color:#888888;line-height:1.6;margin:8px 0 16px 0;text-align:center;">▲ 实拍：内置 / 自定义告警规则</p>
+    <p style="font-size:16px;color:#3f3f3f;line-height:2;margin:0 0 16px 0;text-align:justify;">
+      另外，WebSocket 改成指数退避重连，断网抖动时不会雪崩式刷连接；登录页开箱即用，深浅色也能切。
+    </p>
+    <img src="images/01-login.png" alt="登录页" style="width:100%;height:auto;display:block;border-radius:6px;border:1px solid #e7e7e7;" />
+    <p style="font-size:13px;color:#888888;line-height:1.6;margin:8px 0 0 0;text-align:center;">▲ 实拍：登录页</p>
+  </section>
+
+  <!-- 板块五 -->
+  <section style="margin-bottom:28px;">
+    <p style="font-size:18px;font-weight:bold;color:#007a99;line-height:1.6;margin:0;padding:14px 0;border-top:1px solid #e7e7e7;border-bottom:1px solid #e7e7e7;text-align:center;">五、谁适合升级？三步就能跑起来</p>
+  </section>
+
+  <section style="margin-bottom:28px;">
+    <p style="font-size:15px;color:#3f3f3f;line-height:2.2;margin:0 0 8px 0;">✅ 运维：办公室 / NOC 投屏，连接失败和突发告警第一时间看见</p>
+    <p style="font-size:15px;color:#3f3f3f;line-height:2.2;margin:0 0 8px 0;">✅ 后端：本地 Docker 顺手盯 MySQL / Redis，详情里看建议</p>
+    <p style="font-size:15px;color:#3f3f3f;line-height:2.2;margin:0 0 16px 0;">✅ 小团队：MIT 开源可商用，比从零拼 Grafana 面板快</p>
+
+    <section style="margin:0 0 16px 0;padding:14px 16px;background-color:#1a1a1a;border-radius:8px;">
+      <p style="font-size:13px;color:#8e9aaf;line-height:1.8;margin:0 0 8px 0;">部署（仓库根目录）</p>
+      <p style="font-size:14px;color:#00d4ff;line-height:1.9;margin:0;font-family:Menlo,Consolas,monospace;">
+        git clone https://github.com/MMCISAGOODMAN/database-monitor.git<br/>
+        cd database-monitor<br/>
+        docker compose up -d<br/>
+        # 浏览器打开 http://localhost:8088
+      </p>
+    </section>
+    <p style="font-size:16px;color:#3f3f3f;line-height:2;margin:0;text-align:justify;">
+      Docker 里访问宿主机数据库，主机请填 <code style="background:#f0f0f0;padding:2px 6px;border-radius:3px;color:#007a99;">host.docker.internal</code>，别写 127.0.0.1——这个坑踩一次就记住了。
+    </p>
+  </section>
+
+  <!-- 结尾 -->
+  <section style="margin-bottom:28px;">
+    <p style="font-size:18px;font-weight:bold;color:#007a99;line-height:1.6;margin:0;padding:14px 0;border-top:1px solid #e7e7e7;border-bottom:1px solid #e7e7e7;text-align:center;">写在最后</p>
+  </section>
+
+  <section style="margin-bottom:28px;">
+    <p style="font-size:16px;color:#3f3f3f;line-height:2;margin:0 0 14px 0;text-align:justify;">
+      v2.0 想完成的跃迁很简单：从「数字好看」到「建议可用」，从「计数吓人」到「速率可信」，从「删库报错」到「管理顺手」。项目仍完全开源，欢迎 Star、提 Issue、提 PR。
+    </p>
+    <p style="font-size:16px;color:#3f3f3f;line-height:2;margin:0;text-align:justify;">
+      仓库地址：<strong style="color:#007a99;">github.com/MMCISAGOODMAN/database-monitor</strong>
+    </p>
+  </section>
+
+  <!-- 钩子 -->
+  <section style="margin-bottom:20px;padding:24px 20px;background:linear-gradient(135deg,#0a0f1a 0%,#1a2840 100%);border-radius:12px;text-align:center;">
+    <p style="font-size:18px;font-weight:bold;color:#00d4ff;line-height:1.6;margin:0 0 12px 0;">觉得有用？帮个忙再走</p>
+    <p style="font-size:15px;color:#8e9aaf;line-height:2;margin:0 0 16px 0;">
+      点个<strong style="color:#ffffff;">「在看」</strong>，转给还在一台台登库的同事<br/>
+      顺手<strong style="color:#ffffff;">点赞 + 星标</strong>，作者会更有动力继续更新<br/>
+      回复关键词 <strong style="color:#ffffff;">「监控」</strong>，领取 v2 部署与截图清单
+    </p>
+    <section style="width:120px;height:120px;margin:0 auto 12px auto;background-color:#ffffff;border-radius:8px;padding:8px;box-sizing:border-box;">
+      <p style="font-size:12px;color:#888888;line-height:104px;margin:0;text-align:center;">公众号二维码<br/>请替换</p>
+    </section>
+    <p style="font-size:14px;color:#576b95;line-height:1.6;margin:0;">长按识别二维码，关注后不迷路</p>
+  </section>
+
+  <section style="text-align:center;padding:12px 0 8px 0;">
+    <p style="font-size:12px;color:#cccccc;line-height:1.6;margin:0;">— END —</p>
+  </section>
+
+</section>
+
+</body>
+</html>
