@@ -53,14 +53,16 @@ class CollectorService:
         logger.info("采集器已停止")
 
     async def _run_loop(self) -> None:
-        """采集主循环。"""
-        settings = get_settings()
+        """采集主循环：短 tick，实例各自按间隔节流。"""
         while self._running:
             try:
                 await self.collect_all()
             except Exception as e:
                 logger.error("采集循环异常: %s", e)
-            await asyncio.sleep(settings.collector_interval_seconds)
+            # 全局 tick 取较短值，便于实例级间隔生效
+            settings = get_settings()
+            tick = min(10, max(5, settings.collector_interval_seconds))
+            await asyncio.sleep(tick)
 
     async def collect_all(self) -> None:
         """并发采集所有启用的实例。"""
@@ -76,8 +78,25 @@ class CollectorService:
         tasks = [self._collect_instance(inst) for inst in instances]
         await asyncio.gather(*tasks, return_exceptions=True)
 
+    def _should_collect(self, instance: DatabaseInstance) -> bool:
+        """按实例采集间隔判断本轮是否采集。"""
+        settings = get_settings()
+        interval = instance.collector_interval_seconds or settings.collector_interval_seconds
+        if interval <= 0:
+            interval = settings.collector_interval_seconds
+        last = instance.last_collected_at
+        if not last:
+            return True
+        if last.tzinfo is None:
+            last = last.replace(tzinfo=timezone.utc)
+        elapsed = (datetime.now(timezone.utc) - last).total_seconds()
+        return elapsed >= interval
+
     async def _collect_instance(self, instance: DatabaseInstance) -> None:
         """采集单个实例，支持重试。"""
+        if not self._should_collect(instance):
+            return
+
         settings = get_settings()
         password = decrypt_password(instance.encrypted_password)
         collector_cls = COLLECTOR_MAP.get(instance.db_type)

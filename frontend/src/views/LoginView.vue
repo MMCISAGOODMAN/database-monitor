@@ -94,9 +94,25 @@ async function handleLogin() {
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(ellipse at 20% 50%, rgba(0, 212, 255, 0.08) 0%, transparent 50%),
-    radial-gradient(ellipse at 80% 50%, rgba(123, 140, 255, 0.06) 0%, transparent 50%),
-    var(--bg-primary);
+    linear-gradient(160deg, #f5f6f8 0%, #eef0f3 45%, #e8eaee 100%),
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 23px,
+      rgba(31, 41, 55, 0.03) 24px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 23px,
+      rgba(31, 41, 55, 0.03) 24px
+    );
+  background-blend-mode: normal;
+}
+
+[data-theme='dark'] .login-bg {
+  background:
+    linear-gradient(160deg, #121418 0%, #161a20 50%, #1a1d23 100%);
 }
 
 .login-card {

@@ -8,7 +8,8 @@ export type ThemeMode = 'dark' | 'light'
 
 export const useThemeStore = defineStore('theme', () => {
   const saved = localStorage.getItem('theme') as ThemeMode | null
-  const mode = ref<ThemeMode>(saved === 'light' ? 'light' : 'dark')
+  // v2.1 默认浅色灰白主题
+  const mode = ref<ThemeMode>(saved === 'dark' ? 'dark' : 'light')
 
   function applyTheme(theme: ThemeMode) {
     document.documentElement.setAttribute('data-theme', theme)

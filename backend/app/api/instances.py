@@ -83,11 +83,17 @@ async def create_instance(
         encrypted_password=encrypt_password(data.password),
         database_name=data.database_name,
         max_connections=data.max_connections,
+        collector_interval_seconds=data.collector_interval_seconds,
         group_id=data.group_id,
         description=data.description,
     )
     db.add(instance)
     await db.flush()
+    from app.services.audit_service import audit_service
+    await audit_service.log(
+        db, user=_admin, action="create", resource=f"instance:{instance.id}",
+        detail=f"创建实例 {instance.name}",
+    )
     return ResponseModel(data=DatabaseInstanceResponse.model_validate(instance))
 
 
@@ -136,6 +142,11 @@ async def update_instance(
         setattr(instance, key, value)
 
     await db.flush()
+    from app.services.audit_service import audit_service
+    await audit_service.log(
+        db, user=_admin, action="update", resource=f"instance:{instance.id}",
+        detail=f"更新实例 {instance.name}",
+    )
     return ResponseModel(data=DatabaseInstanceResponse.model_validate(instance))
 
 
@@ -153,6 +164,7 @@ async def delete_instance(
     if not instance:
         raise HTTPException(status_code=404, detail="实例不存在")
 
+    name = instance.name
     # alerts.rule_id / alerts.instance_id 均有外键，必须先删告警事件
     await db.execute(delete(Alert).where(Alert.instance_id == instance_id))
     await db.execute(delete(AlertRule).where(AlertRule.instance_id == instance_id))
@@ -161,6 +173,7 @@ async def delete_instance(
     collector_service.latest_metrics.pop(instance_id, None)
     collector_service._counter_snapshots.pop(instance_id, None)
     from app.services.alert_service import alert_service
+    from app.services.audit_service import audit_service
 
     alert_service._trigger_tracker = {
         k: v for k, v in alert_service._trigger_tracker.items() if k[0] != instance_id
@@ -168,6 +181,10 @@ async def delete_instance(
     alert_service._alert_aggregate = {
         k: v for k, v in alert_service._alert_aggregate.items() if k[0] != instance_id
     }
+    await audit_service.log(
+        db, user=_admin, action="delete", resource=f"instance:{instance_id}",
+        detail=f"删除实例 {name}",
+    )
 
     return ResponseModel(message="删除成功")
 

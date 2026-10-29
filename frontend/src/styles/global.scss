@@ -19,26 +19,16 @@ html, body, #app {
   transition: background 0.3s, color 0.3s;
 }
 
-// 磨砂玻璃卡片
+// 高级感卡片：细边框 + 轻阴影
 .glass-card {
   background: var(--bg-card);
-  backdrop-filter: blur(12px);
   border: 1px solid var(--border-color);
-  border-radius: 8px;
+  border-radius: 10px;
   padding: 16px;
   position: relative;
   overflow: hidden;
-  transition: background 0.3s, border-color 0.3s;
-
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, var(--accent-blue), transparent);
-  }
+  box-shadow: var(--card-shadow);
+  transition: background 0.3s, border-color 0.3s, box-shadow 0.3s;
 }
 
 .card-title {
@@ -65,9 +55,9 @@ html, body, #app {
   border-radius: 50%;
   display: inline-block;
 
-  &.normal { background: var(--accent-blue); box-shadow: 0 0 6px var(--accent-blue); }
-  &.warning { background: var(--accent-orange); box-shadow: 0 0 6px var(--accent-orange); }
-  &.critical, &.offline { background: var(--accent-red); box-shadow: 0 0 6px var(--accent-red); }
+  &.normal { background: var(--accent-blue); }
+  &.warning { background: var(--accent-orange); }
+  &.critical, &.offline { background: var(--accent-red); }
 }
 
 @keyframes countUp {
@@ -170,8 +160,8 @@ html, body, #app {
 
   &.online {
     color: var(--accent-cyan);
-    border-color: rgba(0, 212, 255, 0.4);
-    background: rgba(0, 212, 255, 0.08);
+    border-color: var(--status-online-border);
+    background: var(--status-online-bg);
 
     &::before {
       content: '';
@@ -179,7 +169,6 @@ html, body, #app {
       height: 6px;
       border-radius: 50%;
       background: var(--accent-cyan);
-      box-shadow: 0 0 6px var(--accent-cyan);
     }
   }
 }

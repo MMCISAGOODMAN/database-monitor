@@ -2,6 +2,20 @@
 
 本项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [2.1.0] - 2026-10-20
+
+### Added
+
+- 实例级采集间隔（`collector_interval_seconds`，0 跟随全局）
+- 实例对比 API `/api/dashboard/compare` 与管理页「对比选中」
+- 告警规则静默（`silenced_until`，管理页静默 1h / 清除）
+- 操作审计日志（复用 `operation_logs`，管理页「审计日志」Tab）
+
+### Changed
+
+- 默认主题改为灰白高级感浅色；深色改为炭灰高级暗色（去霓虹青）
+- 应用版本升至 `2.1.0`
+
 ## [2.0.0] - 2026-07-14
 
 ### Breaking

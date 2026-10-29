@@ -1,77 +1,86 @@
 /**
- * 主题 CSS 变量（深色 / 浅色）
+ * 主题 CSS 变量 — v2.1 灰白高级感 / 炭灰暗色
  */
 
 :root,
-[data-theme='dark'] {
-  --bg-primary: #0a0f1a;
-  --bg-card: rgba(20, 30, 50, 0.6);
-  --bg-elevated: rgba(15, 25, 45, 0.85);
-  --bg-input: rgba(20, 30, 50, 0.8);
-  --border-color: rgba(0, 180, 255, 0.25);
-  --text-primary: #c8d6e5;
-  --text-secondary: #8e9aaf;
-  --accent-cyan: #00d4ff;
-  --accent-blue: #4da6ff;
-  --accent-purple: #7b8cff;
-  --accent-orange: #ff9f43;
-  --accent-red: #ff4757;
+[data-theme='light'] {
+  --bg-primary: #f5f6f8;
+  --bg-card: #ffffff;
+  --bg-elevated: #f0f1f4;
+  --bg-input: #ffffff;
+  --border-color: rgba(31, 41, 55, 0.1);
+  --text-primary: #1f2937;
+  --text-secondary: #6b7280;
+  --accent-cyan: #3d5a80; /* 哑光钢蓝（沿用变量名兼容旧组件） */
+  --accent-blue: #4a6fa5;
+  --accent-purple: #5c6b7a;
+  --accent-orange: #b45309;
+  --accent-red: #b91c1c;
 
-  /* 按钮：禁止白色，统一深色底 + 彩色文字 */
-  --btn-bg: rgba(25, 40, 65, 0.9);
-  --btn-bg-hover: rgba(0, 212, 255, 0.12);
-  --btn-text: #8e9aaf;
-  --btn-text-hover: #00d4ff;
-  --btn-border: rgba(0, 180, 255, 0.3);
-  --btn-primary-bg: #006d8a;
-  --btn-primary-bg-hover: #0088aa;
-  --btn-primary-text: #b8ecff;
-  --btn-danger-bg: #8b2e3a;
-  --btn-danger-bg-hover: #a83848;
-  --btn-danger-text: #ffc8cf;
-  --btn-disabled-bg: rgba(40, 50, 70, 0.6);
-  --btn-disabled-text: #5a6a82;
+  --btn-bg: #e8eaee;
+  --btn-bg-hover: rgba(61, 90, 128, 0.1);
+  --btn-text: #4b5563;
+  --btn-text-hover: #3d5a80;
+  --btn-border: rgba(31, 41, 55, 0.12);
+  --btn-primary-bg: #3d5a80;
+  --btn-primary-bg-hover: #2f4666;
+  --btn-primary-text: #f8fafc;
+  --btn-danger-bg: #b91c1c;
+  --btn-danger-bg-hover: #991b1b;
+  --btn-danger-text: #fef2f2;
+  --btn-disabled-bg: #e5e7eb;
+  --btn-disabled-text: #9ca3af;
 
-  --scrollbar-thumb: rgba(0, 212, 255, 0.3);
-  --chart-label: #8e9aaf;
-  --table-header-bg: rgba(0, 212, 255, 0.08);
-  --table-hover-bg: rgba(0, 212, 255, 0.08);
-  --dialog-bg: #141e32;
-  --select-option-bg: #141e32;
+  --scrollbar-thumb: rgba(31, 41, 55, 0.2);
+  --chart-label: #6b7280;
+  --table-header-bg: rgba(61, 90, 128, 0.06);
+  --table-hover-bg: rgba(61, 90, 128, 0.05);
+  --dialog-bg: #ffffff;
+  --select-option-bg: #f5f6f8;
+  --card-shadow: 0 1px 3px rgba(31, 41, 55, 0.06), 0 1px 2px rgba(31, 41, 55, 0.04);
+  --title-gradient-from: #1f2937;
+  --title-gradient-to: #3d5a80;
+  --status-online-bg: rgba(61, 90, 128, 0.08);
+  --status-online-border: rgba(61, 90, 128, 0.28);
 }
 
-[data-theme='light'] {
-  --bg-primary: #e8edf4;
-  --bg-card: rgba(255, 255, 255, 0.82);
-  --bg-elevated: rgba(240, 245, 252, 0.95);
-  --bg-input: rgba(248, 250, 254, 0.95);
-  --border-color: rgba(0, 120, 180, 0.22);
-  --text-primary: #1a2838;
-  --text-secondary: #5a6a82;
-  --accent-cyan: #007a99;
-  --accent-blue: #2563b8;
-  --accent-purple: #5a5fc4;
-  --accent-orange: #c47620;
-  --accent-red: #c43848;
+[data-theme='dark'] {
+  --bg-primary: #121418;
+  --bg-card: #1a1d23;
+  --bg-elevated: #22262e;
+  --bg-input: #1e2229;
+  --border-color: rgba(255, 255, 255, 0.08);
+  --text-primary: #e5e7eb;
+  --text-secondary: #9ca3af;
+  --accent-cyan: #8ba3c7;
+  --accent-blue: #7a93b5;
+  --accent-purple: #8b95a5;
+  --accent-orange: #d97706;
+  --accent-red: #ef4444;
 
-  --btn-bg: #d4dfe9;
-  --btn-bg-hover: rgba(0, 120, 180, 0.14);
-  --btn-text: #4a5a72;
-  --btn-text-hover: #007a99;
-  --btn-border: rgba(0, 120, 180, 0.28);
-  --btn-primary-bg: #007a99;
-  --btn-primary-bg-hover: #0090b5;
-  --btn-primary-text: #e0f4fc;
-  --btn-danger-bg: #b83848;
-  --btn-danger-bg-hover: #cc4455;
-  --btn-danger-text: #ffe8ea;
-  --btn-disabled-bg: #c8d2de;
-  --btn-disabled-text: #8a96a8;
+  --btn-bg: #2a2f38;
+  --btn-bg-hover: rgba(139, 163, 199, 0.12);
+  --btn-text: #9ca3af;
+  --btn-text-hover: #c5d0e0;
+  --btn-border: rgba(255, 255, 255, 0.1);
+  --btn-primary-bg: #4a6280;
+  --btn-primary-bg-hover: #5a7290;
+  --btn-primary-text: #f1f5f9;
+  --btn-danger-bg: #7f1d1d;
+  --btn-danger-bg-hover: #991b1b;
+  --btn-danger-text: #fecaca;
+  --btn-disabled-bg: #2a2f38;
+  --btn-disabled-text: #6b7280;
 
-  --scrollbar-thumb: rgba(0, 120, 180, 0.35);
-  --chart-label: #5a6a82;
-  --table-header-bg: rgba(0, 120, 180, 0.1);
-  --table-hover-bg: rgba(0, 120, 180, 0.08);
-  --dialog-bg: #f4f7fb;
-  --select-option-bg: #eef2f8;
+  --scrollbar-thumb: rgba(255, 255, 255, 0.15);
+  --chart-label: #9ca3af;
+  --table-header-bg: rgba(255, 255, 255, 0.04);
+  --table-hover-bg: rgba(255, 255, 255, 0.04);
+  --dialog-bg: #1a1d23;
+  --select-option-bg: #22262e;
+  --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+  --title-gradient-from: #e5e7eb;
+  --title-gradient-to: #8ba3c7;
+  --status-online-bg: rgba(139, 163, 199, 0.1);
+  --status-online-border: rgba(139, 163, 199, 0.35);
 }
